@@ -1,7 +1,7 @@
 # Turtle
 Description: Try to find your mother turtle
 
-To start the game: Double click on any blink then click on the green blink
+To start the game: Double click on any blink.  After a short animation the game will begin.
 
 To restart at any time: Long press on any blink
 
