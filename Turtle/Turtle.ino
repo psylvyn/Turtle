@@ -508,7 +508,7 @@ void initializeRender() {
 }
 
 void gameRender() {
-  bool shouldRender = true;
+  bool shouldRender = false;
   if(tileType == TILE_TURTLE || isClickable || tileType == TILE_VISITED) {
     shouldRender = true;
   }
