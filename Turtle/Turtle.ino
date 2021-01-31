@@ -135,7 +135,9 @@ void gameLoop() {
 
     switch(tileType) {
       case TILE_TURTLE:
-        turtleTimer.set(TURTLE_TIMER_DURATION);
+        if(turtleTimer.isExpired()) {
+          turtleTimer.set(TURTLE_TIMER_DURATION);
+        }
         broadcastReveal();
         break;
       case TILE_OBSTACLE:
@@ -301,8 +303,6 @@ void broadcastReveal() {
 }
 
 void processMove(int timeRemaining) {
-  
-  //console.log("time remaining: " + timeRemaining);
 
   switch(tileType){
     case TILE_NONE:
@@ -330,8 +330,11 @@ void processMove(int timeRemaining) {
 
   setTileType(TILE_TURTLE);
 
-  //console.log("time remaining: " + (TURTLE_TIMER_SLICE * timeRemaining));
   turtleTimer.set(TURTLE_TIMER_SLICE * timeRemaining);
+
+  if(timeRemaining < 1){
+    turtleTimer.set(500);
+  }
 }
 
 //
