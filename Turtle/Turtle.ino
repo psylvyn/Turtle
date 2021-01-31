@@ -24,13 +24,15 @@ bool isTurtleMotherBeingPicked = true;
 #define TURTLE_INIT_TIMER_DURATION 2500
 #define TURTLE_TIMER_SLICE (TURTLE_TIMER_DURATION / 6)
 
-#define OBSTACLE_PERCENT_NOTHING 30
+#define OBSTACLE_PERCENT_NOTHING 15
 #define OBSTACLE_PERCENT_OBSTACLE_SMALL 55
 #define OBSTACLE_PERCENT_OBSTACLE_LARGE 25
 #define OBSTACLE_PERCENT_OBSTACLE_HELPFUL 20
 
 bool isStateInitialized = false;
 bool isClickable = false;
+
+byte activeFaces[6];
 
 void setup() {
   randomize();
@@ -61,7 +63,6 @@ void loop() {
 
   // hard reset
   if(buttonLongPressed()) {
-    //console.log("HARD RESET");
     setGameMode(GAMEMODE_INERT, true, -1);
   }
 
@@ -98,7 +99,7 @@ void initializeLoop() {
       case TILE_TURTLE:
         //setMotherTile();
         isTurtleMotherBeingPicked = false;
-        turtleInitTimer.set(TURTLE_INIT_TIMER_DURATION/2);
+        turtleInitTimer.set(TURTLE_INIT_TIMER_DURATION/3);
         turtleInitAnimTimer.set(TURTLE_INIT_TIMER_DURATION);
         break;
       case TILE_MOTHER:
@@ -191,7 +192,6 @@ void motherGameLoop() {
 //  Methods
 //
 void setupGame() {
-  //console.clear();
   setGameMode(GAMEMODE_INITIALIZE, true, -1);
   resetTiles();
 }
@@ -206,7 +206,7 @@ void initializeTile() {
 
 void setMotherTile() {
   int steps = 5 + random(2);
-  int face = getRandomFace();
+  int face = getRandomFace(-1);
 
   if(face != -1) {
     setValueSentOnFace(setMessage(MSG_MOTHER, steps), face);
@@ -271,27 +271,35 @@ byte getRandomObstacle() {
   return OBSTACLE_NONE;
 }
 
-int getRandomFace() {
+int getRandomFace(int sourceFace) {
   int faceCount = 0;
 
   FOREACH_FACE(f) {
     if(!isValueReceivedOnFaceExpired(f)) {
-      faceCount++;
+      activeFaces[faceCount++] = f;
     }
   }
 
-  if(faceCount > 0) {
-    int randomFace = random(faceCount - 1) + 1;
 
-    FOREACH_FACE(f) {
-      if(!isValueReceivedOnFaceExpired(f)) {
-        --randomFace;
-        if(randomFace == 0) {
-          return f;
-        }
-      }
+  if(faceCount > 0) {
+    int randomFace = random(faceCount);
+
+    // Pick again if the face is our source. still has a chance 
+    if(activeFaces[randomFace] == sourceFace) {
+      randomFace = random(faceCount);
     }
-    return -1;
+
+    return activeFaces[randomFace];
+
+    // FOREACH_FACE(f) {
+    //   if(!isValueReceivedOnFaceExpired(f)) {
+    //     --randomFace;
+    //     if(randomFace == 0) {
+    //       return f;
+    //     }
+    //   }
+    // }
+    //return -1;
   }
 }
 
@@ -366,14 +374,13 @@ void listenForInitialize() {
   if(isMotherMessage){
     
     if(motherScore == 0 && tileType != TILE_TURTLE) {
-      //console.log("setting a mother");
       setTileType(TILE_MOTHER);
     } else {
-      int face = getRandomFace();
+      int face = getRandomFace(motherMessageSource);
 
-      // heavily favor NOT going backwards
+      // heavily favor moving away from source
       if(face == motherMessageSource && random(100) > 80){
-        face = getRandomFace();
+        face = getRandomFace(motherMessageSource);
       }
 
       motherScore -= 1;
@@ -459,7 +466,6 @@ void listenForMove() {
         case MSG_GAME_MODE:
           if(didValueOnFaceChange(f)) {
             byte newGameMode = getMessageValue(getLastValueReceivedOnFace(f));
-            //console.log("mode change " + newGameMode);
             if(gameMode != newGameMode){
               setGameMode(newGameMode, true, f);
             }
