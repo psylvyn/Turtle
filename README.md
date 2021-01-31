@@ -1,6 +1,8 @@
 # Turtle
 Description: Try to find your mother turtle
 
+Blinks: 18+ seems to work best
+
 To start the game: Double click on any blink.  After a short animation the game will begin.
 
 To restart at any time: Long press on any blink
