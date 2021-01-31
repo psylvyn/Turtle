@@ -17,7 +17,11 @@ enum resetStates {RESET_INITALIZE, RESET_WIN, RESET_LOSE};
 
 int turtleTile = -1;
 Timer turtleTimer;
+Timer turtleInitAnimTimer;
+Timer turtleInitTimer;
+bool isTurtleMotherBeingPicked = true;
 #define TURTLE_TIMER_DURATION 10000
+#define TURTLE_INIT_TIMER_DURATION 2500
 #define TURTLE_TIMER_SLICE (TURTLE_TIMER_DURATION / 6)
 
 #define OBSTACLE_PERCENT_NOTHING 30
@@ -92,7 +96,10 @@ void initializeLoop() {
     isStateInitialized = true;
     switch(tileType){
       case TILE_TURTLE:
-        setMotherTile();
+        //setMotherTile();
+        isTurtleMotherBeingPicked = false;
+        turtleInitTimer.set(TURTLE_INIT_TIMER_DURATION/2);
+        turtleInitAnimTimer.set(TURTLE_INIT_TIMER_DURATION);
         break;
       case TILE_MOTHER:
         break;
@@ -108,7 +115,13 @@ void initializeLoop() {
     }
   }
 
-  if(buttonSingleClicked() && isStateInitialized && tileType == TILE_TURTLE) {
+  // Delay picking mother so collisions might be avoided
+  if(turtleInitTimer.isExpired() && !isTurtleMotherBeingPicked){
+    isTurtleMotherBeingPicked = true;
+    setMotherTile();
+  }
+
+  if(isStateInitialized && tileType == TILE_TURTLE && turtleInitAnimTimer.isExpired()) {
     startGame();
   }
 
@@ -123,6 +136,7 @@ void gameLoop() {
     switch(tileType) {
       case TILE_TURTLE:
         turtleTimer.set(TURTLE_TIMER_DURATION);
+        broadcastReveal();
         break;
       case TILE_OBSTACLE:
         obstacleType = getRandomObstacle();
@@ -130,9 +144,9 @@ void gameLoop() {
     }
   }
 
-  if(tileType == TILE_TURTLE) {
-    broadcastReveal();
-  }
+  // if(tileType == TILE_TURTLE) {
+  //   broadcastReveal();
+  // }
 
   if(buttonSingleClicked() && isClickable) {
     setValueSentOnFace(setMessage(MSG_MOVE, 0), turtleTile);
@@ -198,6 +212,7 @@ void setMotherTile() {
 }
 
 void setTileType(byte newTileType) {
+  isStateInitialized = false;
   tileType = newTileType;
 }
 
@@ -280,6 +295,7 @@ int getRandomFace() {
 
 void broadcastReveal() {
   if(tileType == TILE_TURTLE) {
+    setValueSentOnAllFaces(0);
     setValueSentOnAllFaces(setMessage(MSG_REVEAL, true));
   }
 }
@@ -291,7 +307,6 @@ void processMove(int timeRemaining) {
   switch(tileType){
     case TILE_NONE:
     case TILE_VISITED:
-      setTileType(TILE_TURTLE);
       break;
     case TILE_MOTHER:
       setGameMode(GAMEMODE_END_WIN, true, -1);
@@ -307,10 +322,13 @@ void processMove(int timeRemaining) {
         case OBSTACLE_LARGE:
           timeRemaining -= 2;
           break;
+        case OBSTACLE_NONE:
+          break;
       }
-      setTileType(TILE_TURTLE);
       break;
   }
+
+  setTileType(TILE_TURTLE);
 
   //console.log("time remaining: " + (TURTLE_TIMER_SLICE * timeRemaining));
   turtleTimer.set(TURTLE_TIMER_SLICE * timeRemaining);
@@ -329,7 +347,6 @@ void listenForInitialize() {
     if(!isValueReceivedOnFaceExpired(f) && didValueOnFaceChange(f)){
       switch(getMessageType(getLastValueReceivedOnFace(f))) {
         case MSG_MOTHER:
-          //console.log("mother message");
           isMotherMessage = true;
           motherMessageSource = f;
           motherScore = getMessageValue(getLastValueReceivedOnFace(f));
@@ -361,8 +378,11 @@ void listenForInitialize() {
         motherScore = 0;
       }
       if(face != -1) {
-        setValueSentOnAllFaces(0);
+        //setValueSentOnAllFaces(0);
         setValueSentOnFace(setMessage(MSG_MOTHER, motherScore), face);
+      } else {
+        // better to fail and set a mother
+        setTileType(TILE_MOTHER);
       }
     }
   }
@@ -483,6 +503,11 @@ void initializeRender() {
         break;
       case TILE_TURTLE:
         setColor(GREEN);
+        if(!turtleInitAnimTimer.isExpired()){
+          int step = (millis() / 1000) % 3;
+          setColorOnFace(WHITE, step);
+          setColorOnFace(WHITE, step + 3);
+        }
         break;
       case TILE_OBSTACLE:
         setColor(MAGENTA);
@@ -545,7 +570,7 @@ void gameRender() {
         }
         break;
       case TILE_NONE:
-        setColor(OFF);
+        setColor(dim(BLUE, 120));
         break;
       case TILE_VISITED:
       default:
