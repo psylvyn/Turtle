@@ -32,8 +32,6 @@ bool isTurtleMotherBeingPicked = true;
 bool isStateInitialized = false;
 bool isClickable = false;
 
-byte activeFaces[6];
-
 void setup() {
   randomize();
   initializeTile();
@@ -97,7 +95,7 @@ void initializeLoop() {
     isStateInitialized = true;
     switch(tileType){
       case TILE_TURTLE:
-        //setMotherTile();
+        turtleTimer.set(0);
         isTurtleMotherBeingPicked = false;
         turtleInitTimer.set(TURTLE_INIT_TIMER_DURATION/3);
         turtleInitAnimTimer.set(TURTLE_INIT_TIMER_DURATION);
@@ -146,10 +144,6 @@ void gameLoop() {
         break;
     }
   }
-
-  // if(tileType == TILE_TURTLE) {
-  //   broadcastReveal();
-  // }
 
   if(buttonSingleClicked() && isClickable) {
     setValueSentOnFace(setMessage(MSG_MOVE, 0), turtleTile);
@@ -276,36 +270,27 @@ int getRandomFace(int sourceFace) {
 
   FOREACH_FACE(f) {
     if(!isValueReceivedOnFaceExpired(f)) {
-      activeFaces[faceCount++] = f;
+      faceCount++;
     }
   }
 
-
   if(faceCount > 0) {
-    int randomFace = random(faceCount);
+    int randomFace = random(faceCount - 1) + 1;
 
-    // Pick again if the face is our source. still has a chance 
-    if(activeFaces[randomFace] == sourceFace) {
-      randomFace = random(faceCount);
+    FOREACH_FACE(f) {
+      if(!isValueReceivedOnFaceExpired(f)) {
+        --randomFace;
+        if(randomFace <= 0 && f != sourceFace) {
+          return f;
+        }
+      }
     }
-
-    return activeFaces[randomFace];
-
-    // FOREACH_FACE(f) {
-    //   if(!isValueReceivedOnFaceExpired(f)) {
-    //     --randomFace;
-    //     if(randomFace == 0) {
-    //       return f;
-    //     }
-    //   }
-    // }
-    //return -1;
+    return -1;
   }
 }
 
 void broadcastReveal() {
   if(tileType == TILE_TURTLE) {
-    setValueSentOnAllFaces(0);
     setValueSentOnAllFaces(setMessage(MSG_REVEAL, true));
   }
 }
@@ -388,7 +373,7 @@ void listenForInitialize() {
         motherScore = 0;
       }
       if(face != -1) {
-        //setValueSentOnAllFaces(0);
+        setValueSentOnAllFaces(0);
         setValueSentOnFace(setMessage(MSG_MOTHER, motherScore), face);
       } else {
         // better to fail and set a mother
@@ -575,19 +560,19 @@ void gameRender() {
             setColor(YELLOW);
             break;
           case OBSTACLE_NONE:
-            setColor(dim(BLUE, 120));
+            setColor(BLUE);
         }
         break;
       case TILE_NONE:
-        setColor(dim(BLUE, 120));
+        setColor(BLUE);
         break;
       case TILE_VISITED:
       default:
-        setColor(dim(GREEN, 120));
+        setColor(dim(GREEN, 180));
         break;
     }
   } else {
-    setColor(BLUE);
+    setColor(dim(BLUE, 120));
   }
 }
 
