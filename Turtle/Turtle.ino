@@ -287,6 +287,8 @@ int getRandomFace(int sourceFace) {
     }
     return -1;
   }
+
+  return -1;
 }
 
 void broadcastReveal() {
@@ -446,8 +448,8 @@ void listenForMove() {
               turtleTile = -1;
             }
             isClickable = shouldReveal;
-            break;
           }
+          break;
         case MSG_GAME_MODE:
           if(didValueOnFaceChange(f)) {
             byte newGameMode = getMessageValue(getLastValueReceivedOnFace(f));
